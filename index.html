@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Game</title>
+        <style>
+            #game strong {
+                color: white;
+                background-color: black;
+                padding: 2px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1 id="title">Game</h1>
+
+        <form action="/" method="post" id="rdy">
+            <input type="submit" id="readyb" value="Ready" />
+        </form>
+
+        <form action="/" method="post" id="playGame">
+            <input type="text" name="message" id="message"  />
+            <input type="submit" id="sendRep" value="Send" />
+        </form>
+
+        <section id="game">
+
+        </section>
+        <section id="resu">
+
+        </section>
+
+        <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            document.getElementById("playGame").style.display='none';
+            var socket = io.connect('http://localhost:666');
+
+            socket.emit('reset');
+            var pseudo = prompt('What your Name ?');
+            socket.emit('newUser', pseudo);
+            document.title = pseudo + ' - ' + document.title;
+
+            $('#rdy').submit(function () {
+                var message = '<p><em>' + pseudo + ' est prêt !</em></p>';
+                socket.emit('rdyUser', pseudo);
+                $('#game').prepend(message);
+                return false;
+            });
+
+            $('#playGame').submit(function () {
+                var message = $('#message').val();
+                socket.emit('sendResu', {pseudo: pseudo, r: message});
+                document.getElementById("playGame").style.display='none';
+                $('#message').val('').focus();
+                return false;
+            });
+
+            socket.on('ready',  function(message) {
+                $('#game').prepend('<p>'+message+'</p>');
+                 document.getElementById("readyb").style.display='none';
+            });
+
+            socket.on('iteration',  function(message) {
+
+                $('#game').prepend('<p>'+message+'</p>');
+                document.getElementById("playGame").style.display='block';
+                document.getElementById("sendRep").style.display='block';
+                document.getElementById("message").style.display='block';
+
+            });
+
+            socket.on('lose',  function() {
+                document.getElementById("title").innerHTML = "Lose wait for Result";
+                document.getElementById("game").style.display='none';
+                document.getElementById("playGame").style.display='none';
+            });
+
+            socket.on('rdyMessage', function(data) {
+                $('#game').prepend('<p>'+data+' est prêt</p>');
+            });
+
+            socket.on('score', function(data) {
+                document.getElementById("resu").innerHTML = data;
+            });
+
+            socket.on('endGame', function() {
+              document.getElementById("title").innerHTML = "Game End F5 for replay";
+              document.getElementById("game").style.display='none';
+              document.getElementById("playGame").style.display='none';
+            });
+
+        </script>
+    </body>
+</html>
