@@ -67,27 +67,28 @@ function resetResponse(){
 }
 
 function iteration(counter){
-  if(counter!=0)
-      checkIfResponse();
-  resetResponse();
-  counter++;
-   time = new Date().getSeconds();
-   game();
-   console.log(result);
-  start(counter);
+  if(counter == maxIteration+1){
+    io.sockets.emit('score',scoreToTable());
+    io.sockets.emit('endGame');
+  }else{
+    if(counter!=1)
+        checkIfResponse();
+    resetResponse();
+
+     time = new Date().getSeconds();
+     game();
+     console.log(result);
+  }
 }
 
 function start(counter){
-  if(counter < maxIteration){
-    setTimeout(iteration, 6000,counter);
-  }else{
-     io.sockets.emit('score',scoreToTable());
-     io.sockets.emit('endGame');
+  for (var i = 1; i <= maxIteration+1; i++) {
+    setTimeout(iteration, i*6000 ,i);
   }
 }
 
 function scoreToTable(){
-  var table = '<table border="1">';
+  var table = '<h2 id="title" class="text-center">Scores</h2><table class="table table-striped">';
   for(key in scoreMap){
     table += '<tr><td>'+key+'</td><td>'+scoreMap[key]+'</td></tr>';
   }
