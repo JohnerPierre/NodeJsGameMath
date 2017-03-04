@@ -1,3 +1,5 @@
+/// TODO  Tableau Joueur
+
 var app = require('express')(),
     server = require('http').createServer(app),
     io = require('socket.io').listen(server),
@@ -5,6 +7,8 @@ var app = require('express')(),
     fs = require('fs');
 
 const maxIteration = 4;
+const timePerIteration = 6000;
+
 var userMap = [];
 var scoreMap = [];
 var loseMap = [];
@@ -83,7 +87,7 @@ function iteration(counter){
 
 function start(counter){
   for (var i = 1; i <= maxIteration+1; i++) {
-    setTimeout(iteration, i*6000 ,i);
+    setTimeout(iteration, i*timePerIteration ,i);
   }
 }
 
@@ -96,16 +100,35 @@ function scoreToTable(){
   return table;
 }
 
+function usersToTable(){
+  var table = '<h2 id="title" class="text-center">Users</h2>';
+  for(key in userMap){
+    if(userMap[key]==1)
+      table += '<div class="alert alert-success">';
+    else
+      table += '<div class="alert alert-danger"> ';
+    table += '<strong>'+key+'</strong>';
+    table += '</div>';
+  }
+  return table;
+}
+
 app.get('/', function (req, res) {
   res.sendfile(__dirname + '/index.html');
 });
 
 io.sockets.on('connection', function (socket, pseudo) {
 
+    socket.on('disconnect', function() {
+      pseudo = socket.pseudo;
+      loseMap[pseudo]=1;
+    });
+
     socket.on('newUser', function(pseudo) {
         pseudo = ent.encode(pseudo);
         socket.pseudo = pseudo;
         userMap[pseudo] = false;
+        io.sockets.emit('usersList',usersToTable());
     });
 
     socket.on('sendResu', function(data) {
@@ -113,7 +136,7 @@ io.sockets.on('connection', function (socket, pseudo) {
       if(loseMap[pseudo]!=1){
         if(data.r == result.toString()){
           currentResMap[pseudo]= 1;
-          scoreMap[pseudo]+=Math.abs(new Date().getSeconds()-time);
+          scoreMap[pseudo]+=timePerIteration/1000-Math.abs(new Date().getSeconds()-time);
         }
         else{
           loseMap[pseudo] = 1;
@@ -129,6 +152,7 @@ io.sockets.on('connection', function (socket, pseudo) {
         loseMap[pseudo]=0;
         currentResMap[pseudo]=0;
         socket.broadcast.emit('rdyMessage',pseudo);
+        io.sockets.emit('usersList',usersToTable());
         if(checkReady()){
             io.sockets.emit('ready','All User Ready! Go!');
             start(0);

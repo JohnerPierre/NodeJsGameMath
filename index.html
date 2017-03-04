@@ -31,7 +31,7 @@
 
         </section>
         <section id="resu" class="jumbotron">
-            <h2 id="title" class="text-center">Scores</h2>
+
         </section>
 
         <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
@@ -40,7 +40,6 @@
             document.getElementById("playGame").style.display='none';
             var socket = io.connect('http://localhost:666');
 
-            socket.emit('reset');
             var pseudo = prompt('What your Name ?');
             socket.emit('newUser', pseudo);
             document.title = pseudo + ' - ' + document.title;
@@ -86,6 +85,10 @@
             });
 
             socket.on('score', function(data) {
+                document.getElementById("resu").innerHTML = data;
+            });
+
+            socket.on('usersList', function(data) {
                 document.getElementById("resu").innerHTML = data;
             });
 
