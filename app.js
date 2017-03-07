@@ -1,12 +1,21 @@
+/**
+ * Server File for Math Game
+ * @author Pierre Johner
+ * @date 10.03.2017
+ */
 var app = require('express')(),
     server = require('http').createServer(app),
     io = require('socket.io').listen(server),
     ent = require('ent'),
     fs = require('fs');
 
+// Game Rule
 const maxIteration = 4;
 const timePerIteration = 6000;
+const port = 666;
 
+
+//Global vars
 var userMap = [];
 var scoreMap = [];
 var loseMap = [];
@@ -14,7 +23,10 @@ var currentResMap = [];
 var result;
 var time;
 
-
+/**
+ * Check if all users Ready
+ * @return {boolean} True if all ready
+ */
 function checkReady(){
   var boolean = true;
 
@@ -22,14 +34,22 @@ function checkReady(){
     if(!userMap[key])
       boolean = false;
   }
-
   return boolean;
 }
 
+/**
+ * Random Natural Number Generator
+ * @param  {integer} low  range
+ * @param  {integer} high range
+ * @return {integer}      random number
+ */
 function random (low, high) {
     return Math.floor(Math.random() * (high - low + 1) + low);
 }
 
+/**
+ * Game iteration calcul
+ */
 function game(){
   var number1 = random(1,64);
   var number2 = random(1,64);
@@ -54,6 +74,9 @@ function game(){
   }
 }
 
+/**
+ * Check if users response
+ */
 function checkIfResponse(){
   for(key in currentResMap){
     if(currentResMap[key]==0){
@@ -62,12 +85,19 @@ function checkIfResponse(){
   }
 }
 
+/**
+ * Reset Response for each iteration
+ */
 function resetResponse(){
   for(key in currentResMap){
     currentResMap[key]=0;
   }
 }
 
+/**
+ * Iteration Game Control
+ * @param  {integer} counter round
+ */
 function iteration(counter){
   if(counter == maxIteration+1){
     io.sockets.emit('score',scoreToTable());
@@ -83,12 +113,19 @@ function iteration(counter){
   }
 }
 
-function start(counter){
+/**
+ * Game Iteration Loop
+ */
+function start(){
   for (var i = 1; i <= maxIteration+1; i++) {
     setTimeout(iteration, i*timePerIteration ,i);
   }
 }
 
+/**
+ * Translate Score in HTML table
+ * @return {string} html code
+ */
 function scoreToTable(){
   var table = '<h2 id="title" class="text-center">Scores</h2><table class="table table-striped">';
   for(key in scoreMap){
@@ -98,6 +135,10 @@ function scoreToTable(){
   return table;
 }
 
+/**
+ * Translate Users ready in html
+ * @return {string} html code
+ */
 function usersToTable(){
   var table = '<h2 id="title" class="text-center">Users</h2>';
   for(key in userMap){
@@ -111,17 +152,21 @@ function usersToTable(){
   return table;
 }
 
+//Link Server
 app.get('/', function (req, res) {
   res.sendfile(__dirname + '/index.html');
 });
 
+//Socket behavior
 io.sockets.on('connection', function (socket, pseudo) {
 
+    // When user disconnect make him lose
     socket.on('disconnect', function() {
       pseudo = socket.pseudo;
       loseMap[pseudo]=1;
     });
 
+    //When new user add him in vars and send him others
     socket.on('newUser', function(pseudo) {
         pseudo = ent.encode(pseudo);
         socket.pseudo = pseudo;
@@ -129,6 +174,7 @@ io.sockets.on('connection', function (socket, pseudo) {
         io.sockets.emit('usersList',usersToTable());
     });
 
+    //When user respond data
     socket.on('sendResu', function(data) {
       pseudo = ent.encode(data.pseudo);
       if(loseMap[pseudo]!=1){
@@ -143,6 +189,7 @@ io.sockets.on('connection', function (socket, pseudo) {
         io.sockets.emit('score',scoreToTable());
     });
 
+    //When user is ready init vars
     socket.on('rdyUser', function(pseudo) {
         pseudo = ent.encode(pseudo);
         userMap[pseudo] = true;
@@ -153,10 +200,11 @@ io.sockets.on('connection', function (socket, pseudo) {
         io.sockets.emit('usersList',usersToTable());
         if(checkReady()){
             io.sockets.emit('ready','All User Ready! Go!');
-            start(0);
+            start();
         }
     });
 
+    //When user want reset current game
     socket.on('reset',  function() {
       userMap = [];
       scoreMap=[];
@@ -166,4 +214,5 @@ io.sockets.on('connection', function (socket, pseudo) {
 
 });
 
-server.listen(666);
+// Set Port where lisen
+server.listen(port);
